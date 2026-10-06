@@ -1,0 +1,111 @@
+package com.eduaircontrol.mssensor.application;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.eduaircontrol.mssensor.application.port.SensorInstallationRepository;
+import com.eduaircontrol.mssensor.application.port.SensorRepository;
+import com.eduaircontrol.mssensor.application.port.SensorVariableRepository;
+import com.eduaircontrol.mssensor.domain.exception.ConflictException;
+import com.eduaircontrol.mssensor.domain.exception.NotFoundException;
+import com.eduaircontrol.mssensor.domain.model.Sensor;
+import java.util.Optional;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+class SensorServiceTest {
+
+    private SensorRepository sensorRepository;
+    private SensorInstallationRepository installationRepository;
+    private SensorVariableRepository sensorVariableRepository;
+    private SensorService sensorService;
+
+    @BeforeEach
+    void setUp() {
+        sensorRepository = mock(SensorRepository.class);
+        installationRepository = mock(SensorInstallationRepository.class);
+        sensorVariableRepository = mock(SensorVariableRepository.class);
+        sensorService = new SensorService(sensorRepository, installationRepository,
+                sensorVariableRepository);
+    }
+
+    private Sensor sensor(UUID id) {
+        return Sensor.builder()
+                .id(id)
+                .serialNumber("SN-001")
+                .sensorModelId(UUID.randomUUID())
+                .sensorStatusId(UUID.randomUUID())
+                .build();
+    }
+
+    @Test
+    void getReturnsNotFoundForUnknownId() {
+        UUID id = UUID.randomUUID();
+        when(sensorRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> sensorService.get(id))
+                .isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    void createRejectsDuplicatedSerialNumber() {
+        when(sensorRepository.existsBySerialNumber("SN-001")).thenReturn(true);
+
+        assertThatThrownBy(() -> sensorService.create("SN-001", UUID.randomUUID(), UUID.randomUUID()))
+                .isInstanceOf(ConflictException.class);
+
+        verify(sensorRepository, never()).save(any());
+    }
+
+    @Test
+    void createTrimsSerialNumber() {
+        when(sensorRepository.existsBySerialNumber("SN-9")).thenReturn(false);
+        when(sensorRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Sensor created = sensorService.create("  SN-9  ", UUID.randomUUID(), UUID.randomUUID());
+
+        assertThat(created.getSerialNumber()).isEqualTo("SN-9");
+        assertThat(created.getLastSeenAt()).isNull();
+    }
+
+    @Test
+    void deleteRejectsSensorWithInstallationHistory() {
+        UUID id = UUID.randomUUID();
+        when(sensorRepository.findById(id)).thenReturn(Optional.of(sensor(id)));
+        when(installationRepository.hasAnyForSensor(id)).thenReturn(true);
+
+        assertThatThrownBy(() -> sensorService.delete(id))
+                .isInstanceOf(ConflictException.class);
+
+        verify(sensorRepository, never()).delete(any());
+    }
+
+    @Test
+    void deleteRemovesAssociationsAndSensor() {
+        UUID id = UUID.randomUUID();
+        when(sensorRepository.findById(id)).thenReturn(Optional.of(sensor(id)));
+        when(installationRepository.hasAnyForSensor(id)).thenReturn(false);
+
+        sensorService.delete(id);
+
+        verify(sensorVariableRepository).deleteBySensorId(id);
+        verify(sensorRepository).delete(any());
+    }
+
+    @Test
+    void updateRejectsDuplicatedSerialOnAnotherSensor() {
+        UUID id = UUID.randomUUID();
+        Sensor existing = sensor(id);
+        when(sensorRepository.findById(id)).thenReturn(Optional.of(existing));
+        when(sensorRepository.existsBySerialNumber("SN-002")).thenReturn(true);
+
+        assertThatThrownBy(() -> sensorService.update(id, "SN-002", null, null, null))
+                .isInstanceOf(ConflictException.class);
+    }
+}
