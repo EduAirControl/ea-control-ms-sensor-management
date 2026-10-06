@@ -1,0 +1,15 @@
+databaseChangeLog:
+  - include:
+      file: db/changelog/changes/000-create-schema.yaml
+  - include:
+      file: db/changelog/changes/001-create-sensor.yaml
+  - include:
+      file: db/changelog/changes/002-create-sensor-installation.yaml
+  - include:
+      file: db/changelog/changes/003-create-variable.yaml
+  - include:
+      file: db/changelog/changes/004-create-sensor-variable.yaml
+  - include:
+      file: db/changelog/changes/005-add-foreign-keys.yaml
+  - include:
+      file: db/changelog/changes/006-create-indexes.yaml
