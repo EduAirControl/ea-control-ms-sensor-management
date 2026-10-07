@@ -1,6 +1,6 @@
 package com.eduaircontrol.mssensor.domain.port.out;
 
-import com.eduaircontrol.mssensor.application.page.PageResult;
+import com.eduaircontrol.mssensor.domain.model.PageResult;
 import com.eduaircontrol.mssensor.domain.model.SensorInstallation;
 import java.time.Instant;
 import java.util.Optional;

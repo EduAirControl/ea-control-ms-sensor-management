@@ -1,4 +1,4 @@
-package com.eduaircontrol.mssensor.application.page;
+package com.eduaircontrol.mssensor.domain.model;
 
 import java.util.List;
 

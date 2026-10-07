@@ -1,6 +1,6 @@
 package com.eduaircontrol.mssensor.infrastructure.web.dto;
 
-import com.eduaircontrol.mssensor.application.page.PageResult;
+import com.eduaircontrol.mssensor.domain.model.PageResult;
 import java.util.List;
 import java.util.function.Function;
 

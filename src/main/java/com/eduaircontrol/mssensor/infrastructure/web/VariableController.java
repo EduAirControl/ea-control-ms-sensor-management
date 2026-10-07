@@ -1,7 +1,7 @@
 package com.eduaircontrol.mssensor.infrastructure.web;
 
 import com.eduaircontrol.mssensor.application.VariableService;
-import com.eduaircontrol.mssensor.application.page.PageResult;
+import com.eduaircontrol.mssensor.domain.model.PageResult;
 import com.eduaircontrol.mssensor.domain.model.Variable;
 import com.eduaircontrol.mssensor.infrastructure.web.dto.PageResponse;
 import com.eduaircontrol.mssensor.infrastructure.web.dto.VariableCreateRequest;

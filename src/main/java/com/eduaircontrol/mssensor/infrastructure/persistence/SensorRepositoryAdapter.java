@@ -1,6 +1,6 @@
 package com.eduaircontrol.mssensor.infrastructure.persistence;
 
-import com.eduaircontrol.mssensor.application.page.PageResult;
+import com.eduaircontrol.mssensor.domain.model.PageResult;
 import com.eduaircontrol.mssensor.domain.port.out.SensorRepository;
 import com.eduaircontrol.mssensor.domain.model.Sensor;
 import java.util.ArrayList;
