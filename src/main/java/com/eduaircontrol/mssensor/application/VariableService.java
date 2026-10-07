@@ -1,10 +1,10 @@
 package com.eduaircontrol.mssensor.application;
 
-import com.eduaircontrol.mssensor.application.page.PageResult;
-import com.eduaircontrol.mssensor.application.port.SensorVariableRepository;
-import com.eduaircontrol.mssensor.application.port.VariableRepository;
-import com.eduaircontrol.mssensor.domain.exception.ConflictException;
-import com.eduaircontrol.mssensor.domain.exception.NotFoundException;
+import com.eduaircontrol.mssensor.domain.model.PageResult;
+import com.eduaircontrol.mssensor.domain.port.out.SensorVariableRepository;
+import com.eduaircontrol.mssensor.domain.port.out.VariableRepository;
+import com.eduaircontrol.mssensor.shared.exception.ConflictException;
+import com.eduaircontrol.mssensor.shared.exception.NotFoundException;
 import com.eduaircontrol.mssensor.domain.model.Variable;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;

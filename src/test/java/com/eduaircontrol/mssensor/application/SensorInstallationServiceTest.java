@@ -8,11 +8,11 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.eduaircontrol.mssensor.application.port.SensorInstallationRepository;
-import com.eduaircontrol.mssensor.application.port.SensorRepository;
-import com.eduaircontrol.mssensor.domain.exception.ConflictException;
-import com.eduaircontrol.mssensor.domain.exception.NotFoundException;
-import com.eduaircontrol.mssensor.domain.exception.ValidationException;
+import com.eduaircontrol.mssensor.domain.port.out.SensorInstallationRepository;
+import com.eduaircontrol.mssensor.domain.port.out.SensorRepository;
+import com.eduaircontrol.mssensor.shared.exception.ConflictException;
+import com.eduaircontrol.mssensor.shared.exception.NotFoundException;
+import com.eduaircontrol.mssensor.shared.exception.ValidationException;
 import com.eduaircontrol.mssensor.domain.model.Sensor;
 import com.eduaircontrol.mssensor.domain.model.SensorInstallation;
 import java.time.Instant;
