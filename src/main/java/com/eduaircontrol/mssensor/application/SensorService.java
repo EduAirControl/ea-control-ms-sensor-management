@@ -1,12 +1,12 @@
 package com.eduaircontrol.mssensor.application;
 
 import com.eduaircontrol.mssensor.application.page.PageResult;
-import com.eduaircontrol.mssensor.application.port.SensorInstallationRepository;
-import com.eduaircontrol.mssensor.application.port.SensorRepository;
-import com.eduaircontrol.mssensor.application.port.SensorVariableRepository;
-import com.eduaircontrol.mssensor.domain.exception.ConflictException;
-import com.eduaircontrol.mssensor.domain.exception.NotFoundException;
-import com.eduaircontrol.mssensor.domain.exception.ValidationException;
+import com.eduaircontrol.mssensor.domain.port.out.SensorInstallationRepository;
+import com.eduaircontrol.mssensor.domain.port.out.SensorRepository;
+import com.eduaircontrol.mssensor.domain.port.out.SensorVariableRepository;
+import com.eduaircontrol.mssensor.shared.exception.ConflictException;
+import com.eduaircontrol.mssensor.shared.exception.NotFoundException;
+import com.eduaircontrol.mssensor.shared.exception.ValidationException;
 import com.eduaircontrol.mssensor.domain.model.Sensor;
 import java.time.Instant;
 import java.util.UUID;

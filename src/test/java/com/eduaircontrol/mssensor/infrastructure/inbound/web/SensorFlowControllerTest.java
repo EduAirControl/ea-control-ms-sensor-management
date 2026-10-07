@@ -1,13 +1,13 @@
-package com.eduaircontrol.mssensor.infrastructure.inbound.web;
+package com.eduaircontrol.mssensor.infrastructure.web;
 
 import com.eduaircontrol.mssensor.domain.model.Sensor;
 import com.eduaircontrol.mssensor.domain.model.SensorVariable;
 import com.eduaircontrol.mssensor.domain.model.Variable;
-import com.eduaircontrol.mssensor.infrastructure.outbound.persistence.SensorInstallationJpaRepository;
-import com.eduaircontrol.mssensor.infrastructure.outbound.persistence.SensorJpaRepository;
-import com.eduaircontrol.mssensor.infrastructure.outbound.persistence.SensorVariableJpaRepository;
-import com.eduaircontrol.mssensor.infrastructure.outbound.persistence.VariableJpaRepository;
-import com.eduaircontrol.mssensor.infrastructure.security.JwtService;
+import com.eduaircontrol.mssensor.infrastructure.persistence.SensorInstallationJpaRepository;
+import com.eduaircontrol.mssensor.infrastructure.persistence.SensorJpaRepository;
+import com.eduaircontrol.mssensor.infrastructure.persistence.SensorVariableJpaRepository;
+import com.eduaircontrol.mssensor.infrastructure.persistence.VariableJpaRepository;
+import com.eduaircontrol.mssensor.shared.security.JwtService;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
