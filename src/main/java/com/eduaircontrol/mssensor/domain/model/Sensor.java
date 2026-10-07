@@ -39,6 +39,9 @@ public class Sensor {
     @Column(name = "sensor_status_id", nullable = false)
     private UUID sensorStatusId;
 
+    @Column(name = "institution_id")
+    private UUID institutionId;
+
     @Column(name = "last_seen_at")
     private Instant lastSeenAt;
 

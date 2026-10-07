@@ -15,5 +15,5 @@ public interface SensorRepository {
 
     void delete(Sensor sensor);
 
-    PageResult<Sensor> search(String query, UUID sensorModelId, UUID sensorStatusId, int page, int limit);
+    PageResult<Sensor> search(String query, UUID sensorModelId, UUID sensorStatusId, UUID institutionId, int page, int limit);
 }

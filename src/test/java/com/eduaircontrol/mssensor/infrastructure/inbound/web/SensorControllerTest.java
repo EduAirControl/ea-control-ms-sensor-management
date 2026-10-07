@@ -209,4 +209,29 @@ class SensorControllerTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("CONFLICT"));
     }
+
+    @Test
+    void listIsScopedByInstitutionHeader() throws Exception {
+        UUID institutionA = UUID.randomUUID();
+        UUID institutionB = UUID.randomUUID();
+
+        mockMvc.perform(post("/api/v1/sensors")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .header("X-Institution-Id", institutionA.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody("SN-SCOPED-A")))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/v1/sensors")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .header("X-Institution-Id", institutionB.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.meta.total").value(0));
+
+        mockMvc.perform(get("/api/v1/sensors")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .header("X-Institution-Id", institutionA.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.meta.total").value(1));
+    }
 }
