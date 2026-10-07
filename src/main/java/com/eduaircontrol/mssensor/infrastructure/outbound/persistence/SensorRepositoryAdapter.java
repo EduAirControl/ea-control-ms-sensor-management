@@ -43,7 +43,7 @@ public class SensorRepositoryAdapter implements SensorRepository {
     }
 
     @Override
-    public PageResult<Sensor> search(String query, UUID sensorModelId, UUID sensorStatusId,
+    public PageResult<Sensor> search(String query, UUID sensorModelId, UUID sensorStatusId, UUID institutionId,
             int page, int limit) {
         Specification<Sensor> specification = (root, q, cb) -> {
             List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
@@ -56,6 +56,9 @@ public class SensorRepositoryAdapter implements SensorRepository {
             }
             if (sensorStatusId != null) {
                 predicates.add(cb.equal(root.get("sensorStatusId"), sensorStatusId));
+            }
+            if (institutionId != null) {
+                predicates.add(cb.equal(root.get("institutionId"), institutionId));
             }
             return cb.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
         };

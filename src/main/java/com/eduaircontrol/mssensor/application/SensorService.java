@@ -26,7 +26,7 @@ public class SensorService {
     @Transactional(readOnly = true)
     public PageResult<Sensor> list(String query, UUID sensorModelId, UUID sensorStatusId,
             int page, int limit) {
-        return sensorRepository.search(query, sensorModelId, sensorStatusId, page, limit);
+        return sensorRepository.search(query, sensorModelId, sensorStatusId, TenantContext.institutionId(), page, limit);
     }
 
     @Transactional(readOnly = true)
@@ -42,6 +42,7 @@ public class SensorService {
         }
         Sensor sensor = Sensor.builder()
                 .serialNumber(normalizedSerial)
+                .institutionId(TenantContext.institutionId())
                 .sensorModelId(requireId(sensorModelId, "sensorModelId"))
                 .sensorStatusId(requireId(sensorStatusId, "sensorStatusId"))
                 .build();
