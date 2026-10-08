@@ -1,0 +1,45 @@
+databaseChangeLog:
+  - changeSet:
+      id: 009-create-outbox-event
+      author: eduaircontrol
+      comment: >
+        Outbox transaccional (ADR-007). La fila se escribe en la MISMA transaccion
+        que la instalacion del sensor: o se guardan las dos o ninguna. Es lo que
+        evita el fallo clasico de publicar directo, donde el proceso muere entre el
+        commit y el publish y la instalacion queda sin proyectar en
+        ms-environment-monitoring sin que nadie se entere.
+
+        Va en el esquema sensors y no en un esquema outbox propio como en el
+        monolito: aqui el outbox lo usa un solo servicio, y ADR-003 pide un
+        esquema por servicio.
+      changes:
+        - sql:
+            dbms: postgresql
+            sql: |
+              CREATE TABLE sensors.outbox_event (
+                  event_id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                  event_type     VARCHAR(80)  NOT NULL,
+                  aggregate_type VARCHAR(60)  NOT NULL,
+                  aggregate_id   VARCHAR(60)  NOT NULL,
+                  routing_key    VARCHAR(80)  NOT NULL,
+                  -- text y no jsonb: el relay solo reenvia el cuerpo tal cual,
+                  -- nunca lo consulta por SQL. Para inspeccionarlo basta un
+                  -- payload::jsonb.
+                  payload        TEXT         NOT NULL,
+                  occurred_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),
+                  -- NULL = pendiente de publicar. El relay solo mira estos.
+                  published_at   TIMESTAMPTZ,
+                  attempts       INTEGER      NOT NULL DEFAULT 0,
+                  last_error     TEXT
+              );
+
+              -- Indice parcial: findPending() solo mira published_at IS NULL y con
+              -- el tiempo las filas ya publicadas son la mayoria. Un indice normal
+              -- los incluiria todas y la consulta se degradaria.
+              CREATE INDEX idx_outbox_event_pending
+                  ON sensors.outbox_event (occurred_at)
+                  WHERE published_at IS NULL;
+      rollback:
+        - sql:
+            dbms: postgresql
+            sql: DROP TABLE IF EXISTS sensors.outbox_event;

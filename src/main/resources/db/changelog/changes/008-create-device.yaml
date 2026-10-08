@@ -1,0 +1,104 @@
+databaseChangeLog:
+  - changeSet:
+      id: 008-create-device
+      author: eduaircontrol
+      comment: >
+        Registro de dispositivos IoT (nodos ESP32). Es la copia del concepto que
+        el monolito tenia en sensors.device y que microservicios no tenia, lo que
+        hacia que la app movil no pudiera registrar nada. NO guarda credenciales:
+        el clientSecret vive hasheado en ms-security (oauth2_registered_client) y
+        el token de aprovisionamiento tampoco se persiste aqui.
+      changes:
+        - createTable:
+            schemaName: sensors
+            tableName: device
+            columns:
+              - column:
+                  name: device_id
+                  type: UUID
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_device
+                    nullable: false
+              - column:
+                  name: mac_address
+                  type: VARCHAR(17)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uq_device_mac_address
+              - column:
+                  name: name
+                  type: VARCHAR(120)
+              - column:
+                  name: device_type
+                  type: VARCHAR(20)
+                  defaultValue: esp32
+                  constraints:
+                    nullable: false
+              - column:
+                  name: firmware_version
+                  type: VARCHAR(40)
+              - column:
+                  name: ssid
+                  type: VARCHAR(64)
+              - column:
+                  name: status
+                  type: VARCHAR(16)
+                  defaultValue: pendiente
+                  constraints:
+                    nullable: false
+              - column:
+                  name: educational_environment_id
+                  type: UUID
+              - column:
+                  name: last_seen_at
+                  type: TIMESTAMPTZ
+              - column:
+                  name: created_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+      rollback:
+        - dropTable:
+            schemaName: sensors
+            tableName: device
+
+  - changeSet:
+      id: 008-device-indexes
+      author: eduaircontrol
+      comment: >
+        Indice por ambiente porque la app filtra el listado por aula, que es la
+        consulta dominante de la pantalla de dispositivos.
+      changes:
+        - createIndex:
+            schemaName: sensors
+            tableName: device
+            indexName: idx_device_environment_id
+            columns:
+              - column:
+                  name: educational_environment_id
+        - createIndex:
+            schemaName: sensors
+            tableName: device
+            indexName: idx_device_status
+            columns:
+              - column:
+                  name: status
+      rollback:
+        - dropIndex:
+            schemaName: sensors
+            tableName: device
+            indexName: idx_device_status
+        - dropIndex:
+            schemaName: sensors
+            tableName: device
+            indexName: idx_device_environment_id

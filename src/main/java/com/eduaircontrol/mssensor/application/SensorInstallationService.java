@@ -7,6 +7,9 @@ import com.eduaircontrol.mssensor.shared.exception.ConflictException;
 import com.eduaircontrol.mssensor.shared.exception.NotFoundException;
 import com.eduaircontrol.mssensor.shared.exception.ValidationException;
 import com.eduaircontrol.mssensor.domain.model.SensorInstallation;
+import com.eduaircontrol.mssensor.infrastructure.messaging.OutboxWriter;
+import com.eduaircontrol.mssensor.infrastructure.messaging.SensorInstalled;
+import com.eduaircontrol.mssensor.infrastructure.messaging.SensorRemoved;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +23,7 @@ public class SensorInstallationService {
 
     private final SensorInstallationRepository installationRepository;
     private final SensorRepository sensorRepository;
+    private final OutboxWriter outboxWriter;
 
     @Transactional(readOnly = true)
     public PageResult<SensorInstallation> list(UUID sensorId, UUID educationalEnvironmentId,
@@ -48,7 +52,19 @@ public class SensorInstallationService {
                         educationalEnvironmentId, "educationalEnvironmentId"))
                 .installedAt(installed)
                 .build();
-        return installationRepository.save(installation);
+        SensorInstallation saved = installationRepository.save(installation);
+
+        // El evento se encola en ESTA transaccion (ADR-007): si el commit falla,
+        // tampoco queda la fila del outbox. No se publica aqui.
+        outboxWriter.append(
+                SensorInstalled.TYPE,
+                SensorInstalled.AGGREGATE_TYPE,
+                saved.getId().toString(),
+                SensorInstalled.ROUTING_KEY,
+                SensorInstalled.of(saved.getId(), saved.getSensorId(),
+                        saved.getEducationalEnvironmentId(), saved.getInstalledAt(), installed),
+                installed);
+        return saved;
     }
 
     public SensorInstallation close(UUID id) {
@@ -60,7 +76,18 @@ public class SensorInstallationService {
             throw new ValidationException("installedAt is in the future; installation cannot be closed yet");
         }
         installation.setRemovedAt(Instant.now());
-        return installationRepository.save(installation);
+        SensorInstallation saved = installationRepository.save(installation);
+
+        outboxWriter.append(
+                SensorRemoved.TYPE,
+                SensorRemoved.AGGREGATE_TYPE,
+                saved.getId().toString(),
+                SensorRemoved.ROUTING_KEY,
+                SensorRemoved.of(saved.getId(), saved.getSensorId(),
+                        saved.getEducationalEnvironmentId(), saved.getInstalledAt(),
+                        saved.getRemovedAt(), saved.getRemovedAt()),
+                saved.getRemovedAt());
+        return saved;
     }
 
     private static Instant requireInstant(Instant value, String field) {

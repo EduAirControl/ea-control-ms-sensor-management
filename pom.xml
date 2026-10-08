@@ -15,7 +15,21 @@
 	<description>Sensor registration and management service (sensors domain)</description>
 	<properties>
 		<java.version>17</java.version>
+		<testcontainers.version>1.21.3</testcontainers.version>
+		<!-- Docker Engine 29 rechaza API < 1.44 con HTTP 400; docker-java negocia 1.32 por defecto. -->
+		<docker.api.version>1.44</docker.api.version>
 	</properties>
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.testcontainers</groupId>
+				<artifactId>testcontainers-bom</artifactId>
+				<version>${testcontainers.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -32,6 +46,11 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>
+		</dependency>
+		<!-- Publicacion de eventos de dominio por AMQP (ADR-007, outbox transaccional). -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-amqp</artifactId>
 		</dependency>
 
 		<dependency>
@@ -96,10 +115,30 @@
 			<artifactId>h2</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- RabbitMQ real para los tests del outbox: el relay solo se verifica
+		     de verdad contra un broker de verdad. -->
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>rabbitmq</artifactId>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>
 		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<systemPropertyVariables>
+						<!-- docker-java negocia API 1.32 por defecto y Docker Engine 29 la
+						     rechaza con 400 (minimo 1.40). Tiene que viajar como system
+						     property a la JVM de test; declararla solo en <properties>
+						     no llega a docker-java. -->
+						<api.version>${docker.api.version}</api.version>
+					</systemPropertyVariables>
+				</configuration>
+			</plugin>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
