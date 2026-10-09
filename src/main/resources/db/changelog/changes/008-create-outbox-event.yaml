@@ -6,6 +6,12 @@ databaseChangeLog:
         Outbox transaccional (ADR-007) de los eventos de instalacion de sensores.
         Se escribe en la misma transaccion que la alta o el cierre de la instalacion
         y lo publica OutboxRelay hacia eduaircontrol.sensor.
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            tableExists:
+              schemaName: sensors
+              tableName: outbox_event
       changes:
         - createTable:
             schemaName: sensors
