@@ -38,6 +38,18 @@ public class SensorRepositoryAdapter implements SensorRepository {
     }
 
     @Override
+    public boolean existsBySensorModelId(UUID sensorModelId) {
+        return jpaRepository.exists(Specification.<Sensor>where(
+                (root, query, cb) -> cb.equal(root.get("sensorModelId"), sensorModelId)));
+    }
+
+    @Override
+    public boolean existsBySensorStatusId(UUID sensorStatusId) {
+        return jpaRepository.exists(Specification.<Sensor>where(
+                (root, query, cb) -> cb.equal(root.get("sensorStatusId"), sensorStatusId)));
+    }
+
+    @Override
     public void delete(Sensor sensor) {
         jpaRepository.delete(sensor);
     }

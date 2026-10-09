@@ -50,27 +50,51 @@ class SensorFlowControllerTest {
     private SensorVariableJpaRepository sensorVariableRepository;
 
     @Autowired
+    private com.eduaircontrol.mssensor.infrastructure.persistence.SensorModelJpaRepository modelRepository;
+
+    @Autowired
+    private com.eduaircontrol.mssensor.infrastructure.persistence.SensorStatusJpaRepository statusRepository;
+
+    @Autowired
+    private com.eduaircontrol.mssensor.infrastructure.persistence.MeasurementUnitJpaRepository unitRepository;
+
+    @Autowired
     private TestTokenMint jwtService;
 
     @Autowired
     private tools.jackson.databind.ObjectMapper objectMapper;
 
     private String adminToken;
+    private UUID modelId;
+    private UUID statusId;
+    private UUID unitId;
 
     @BeforeEach
     void setUp() {
+        modelRepository.deleteAll();
+        statusRepository.deleteAll();
+        unitRepository.deleteAll();
         sensorVariableRepository.deleteAll();
         installationRepository.deleteAll();
         variableRepository.deleteAll();
         sensorRepository.deleteAll();
+        modelId = modelRepository.save(
+                com.eduaircontrol.mssensor.domain.model.SensorModel.builder()
+                        .code("ESP32_DHT11").name("ESP32 con DHT11").build()).getId();
+        statusId = statusRepository.save(
+                com.eduaircontrol.mssensor.domain.model.SensorStatus.builder()
+                        .code("ACTIVE").name("Activo").build()).getId();
+        unitId = unitRepository.save(
+                com.eduaircontrol.mssensor.domain.model.MeasurementUnit.builder()
+                        .code("PERCENT").symbol("%").name("Porcentaje").build()).getId();
         adminToken = jwtService.generateToken("admin@test.com", "ADMIN");
     }
 
     private Sensor saveSensor(String serialNumber) {
         return sensorRepository.save(Sensor.builder()
                 .serialNumber(serialNumber)
-                .sensorModelId(UUID.randomUUID())
-                .sensorStatusId(UUID.randomUUID())
+                .sensorModelId(modelId)
+                .sensorStatusId(statusId)
                 .build());
     }
 
@@ -78,7 +102,7 @@ class SensorFlowControllerTest {
         return variableRepository.save(Variable.builder()
                 .code(code)
                 .name("Variable " + code)
-                .measurementUnitId(UUID.randomUUID())
+                .measurementUnitId(unitId)
                 .build());
     }
 
@@ -88,7 +112,7 @@ class SensorFlowControllerTest {
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"code\":\"temp\",\"name\":\"Temperature\","
-                                + "\"measurementUnitId\":\"" + UUID.randomUUID() + "\"}"))
+                                + "\"measurementUnitId\":\"" + unitId + "\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.code").value("TEMP"));
 
@@ -96,7 +120,7 @@ class SensorFlowControllerTest {
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"code\":\"TEMP\",\"name\":\"Temperature\","
-                                + "\"measurementUnitId\":\"" + UUID.randomUUID() + "\"}"))
+                                + "\"measurementUnitId\":\"" + unitId + "\"}"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("CONFLICT"));
     }

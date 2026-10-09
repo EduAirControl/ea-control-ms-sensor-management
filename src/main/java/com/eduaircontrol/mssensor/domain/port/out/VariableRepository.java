@@ -13,6 +13,9 @@ public interface VariableRepository {
 
     boolean existsByCode(String code);
 
+    /** Evita borrar una unidad que ya usan variables. */
+    boolean existsByMeasurementUnitId(UUID measurementUnitId);
+
     void delete(Variable variable);
 
     PageResult<Variable> search(String query, int page, int limit);
