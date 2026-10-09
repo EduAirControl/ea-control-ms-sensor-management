@@ -11,8 +11,14 @@ services:
       POSTGRES_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-eduaircontrol_sensors}
       POSTGRES_USER: ${POSTGRES_USER:-sensor_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sensor_pass}
+      RABBITMQ_HOST: ${RABBITMQ_HOST:-rabbitmq}
+      RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
     depends_on:
       postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     restart: always
 
@@ -35,5 +41,22 @@ services:
       start_period: 10s
     restart: always
 
+  rabbitmq:
+    image: rabbitmq:3.13-alpine
+    container_name: ms-sensor-management-rabbit
+    ports:
+      - "5675:5672"
+      - "15675:15672"
+    volumes:
+      - sensor_rabbit_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: always
+
 volumes:
   sensor_postgres_data:
+  sensor_rabbit_data:
