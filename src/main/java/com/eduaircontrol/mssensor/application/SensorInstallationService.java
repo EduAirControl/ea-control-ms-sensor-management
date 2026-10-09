@@ -1,11 +1,12 @@
 package com.eduaircontrol.mssensor.application;
 
-import com.eduaircontrol.mssensor.application.page.PageResult;
-import com.eduaircontrol.mssensor.application.port.SensorInstallationRepository;
-import com.eduaircontrol.mssensor.application.port.SensorRepository;
-import com.eduaircontrol.mssensor.domain.exception.ConflictException;
-import com.eduaircontrol.mssensor.domain.exception.NotFoundException;
-import com.eduaircontrol.mssensor.domain.exception.ValidationException;
+import com.eduaircontrol.mssensor.domain.model.PageResult;
+import com.eduaircontrol.mssensor.domain.port.out.InstallationEventPublisher;
+import com.eduaircontrol.mssensor.domain.port.out.SensorInstallationRepository;
+import com.eduaircontrol.mssensor.domain.port.out.SensorRepository;
+import com.eduaircontrol.mssensor.shared.exception.ConflictException;
+import com.eduaircontrol.mssensor.shared.exception.NotFoundException;
+import com.eduaircontrol.mssensor.shared.exception.ValidationException;
 import com.eduaircontrol.mssensor.domain.model.SensorInstallation;
 import java.time.Instant;
 import java.util.UUID;
@@ -20,6 +21,7 @@ public class SensorInstallationService {
 
     private final SensorInstallationRepository installationRepository;
     private final SensorRepository sensorRepository;
+    private final InstallationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public PageResult<SensorInstallation> list(UUID sensorId, UUID educationalEnvironmentId,
@@ -48,7 +50,11 @@ public class SensorInstallationService {
                         educationalEnvironmentId, "educationalEnvironmentId"))
                 .installedAt(installed)
                 .build();
-        return installationRepository.save(installation);
+        SensorInstallation saved = installationRepository.save(installation);
+        // Se emite dentro de esta misma transaccion (outbox, ADR-007): si el cambio
+        // no se confirma, tampoco se publica el evento.
+        eventPublisher.installed(saved);
+        return saved;
     }
 
     public SensorInstallation close(UUID id) {
@@ -60,7 +66,9 @@ public class SensorInstallationService {
             throw new ValidationException("installedAt is in the future; installation cannot be closed yet");
         }
         installation.setRemovedAt(Instant.now());
-        return installationRepository.save(installation);
+        SensorInstallation saved = installationRepository.save(installation);
+        eventPublisher.removed(saved);
+        return saved;
     }
 
     private static Instant requireInstant(Instant value, String field) {

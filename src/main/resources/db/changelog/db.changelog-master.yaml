@@ -15,3 +15,11 @@ databaseChangeLog:
       file: db/changelog/changes/006-create-indexes.yaml
   - include:
       file: db/changelog/changes/007-add-sensor-institution.yaml
+  - include:
+      file: db/changelog/changes/008-create-outbox-event.yaml
+  - include:
+      file: db/changelog/changes/009-create-sensor-catalog.yaml
+  - include:
+      file: db/changelog/changes/010-seed-variables.yaml
+  - include:
+      file: db/changelog/changes/011-add-full-sensor-model.yaml
