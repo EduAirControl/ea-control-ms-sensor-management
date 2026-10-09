@@ -21,3 +21,5 @@ databaseChangeLog:
       file: db/changelog/changes/009-create-sensor-catalog.yaml
   - include:
       file: db/changelog/changes/010-seed-variables.yaml
+  - include:
+      file: db/changelog/changes/011-add-full-sensor-model.yaml
