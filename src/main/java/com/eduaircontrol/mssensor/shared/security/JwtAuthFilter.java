@@ -17,9 +17,15 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Autenticación en el servicio. Prioriza los headers internos que añade el
- * api-gateway (ADR-006/017): {@code X-User-Id} y {@code X-User-Role}. Si no
- * vienen (llamada directa), cae al JWT HS256 interino.
+ * Autenticación en el servicio.
+ *
+ * <p>Prioriza los headers internos que añade el api-gateway (ADR-006/017):
+ * {@code X-User-Id} y {@code X-User-Role}. Si no vienen (llamada directa), valida
+ * el JWT RS256 contra el JWKS de ms-security.
+ *
+ * <p><b>Deuda conocida:</b> los headers se aceptan sin comprobar su origen, así que
+ * quien alcance el puerto del servicio puede suplantarse. Se cierra con red
+ * solo-gateway, mTLS o secreto compartido de headers.
  */
 @Component
 @RequiredArgsConstructor
@@ -52,11 +58,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
         String token = authHeader.substring(7);
         try {
-            String email = jwtService.extractEmail(token);
-            String roleFromToken = jwtService.extractRole(token);
+            JwtService.AuthenticatedUser user = jwtService.authenticate(token);
+            List<SimpleGrantedAuthority> authorities = user.roles().stream()
+                    .map(r -> new SimpleGrantedAuthority("ROLE_" + r))
+                    .toList();
             SecurityContextHolder.getContext().setAuthentication(
-                    new UsernamePasswordAuthenticationToken(email, null,
-                            List.of(new SimpleGrantedAuthority("ROLE_" + roleFromToken))));
+                    new UsernamePasswordAuthenticationToken(
+                            user.email() != null ? user.email() : String.valueOf(user.userId()),
+                            null, authorities));
         } catch (Exception e) {
             log.debug("Invalid token: {}", e.getMessage());
         }

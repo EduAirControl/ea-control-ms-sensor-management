@@ -7,7 +7,7 @@ import com.eduaircontrol.mssensor.infrastructure.persistence.SensorInstallationJ
 import com.eduaircontrol.mssensor.infrastructure.persistence.SensorJpaRepository;
 import com.eduaircontrol.mssensor.infrastructure.persistence.SensorVariableJpaRepository;
 import com.eduaircontrol.mssensor.infrastructure.persistence.VariableJpaRepository;
-import com.eduaircontrol.mssensor.shared.security.JwtService;
+import com.eduaircontrol.mssensor.shared.security.TestTokenMint;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
@@ -50,7 +50,7 @@ class SensorFlowControllerTest {
     private SensorVariableJpaRepository sensorVariableRepository;
 
     @Autowired
-    private JwtService jwtService;
+    private TestTokenMint jwtService;
 
     @Autowired
     private tools.jackson.databind.ObjectMapper objectMapper;
