@@ -1,6 +1,7 @@
 package com.eduaircontrol.mssensor.application;
 
 import com.eduaircontrol.mssensor.domain.model.PageResult;
+import com.eduaircontrol.mssensor.domain.port.out.MeasurementUnitRepository;
 import com.eduaircontrol.mssensor.domain.port.out.SensorVariableRepository;
 import com.eduaircontrol.mssensor.domain.port.out.VariableRepository;
 import com.eduaircontrol.mssensor.shared.exception.ConflictException;
@@ -18,6 +19,7 @@ public class VariableService {
 
     private final VariableRepository variableRepository;
     private final SensorVariableRepository sensorVariableRepository;
+    private final MeasurementUnitRepository measurementUnitRepository;
 
     @Transactional(readOnly = true)
     public PageResult<Variable> list(String query, int page, int limit) {
@@ -35,10 +37,16 @@ public class VariableService {
         if (variableRepository.existsByCode(normalizedCode)) {
             throw new ConflictException("Variable code already exists: " + normalizedCode);
         }
+        // La unidad tenia que existir: antes cualquier UUID pasaba y la variable
+        // quedaba sin unidad real.
+        UUID unitId = SensorService.requireId(measurementUnitId, "measurementUnitId");
+        if (!measurementUnitRepository.existsById(unitId)) {
+            throw new NotFoundException("Measurement unit not found: " + unitId);
+        }
         Variable variable = Variable.builder()
                 .code(normalizedCode)
                 .name(SensorService.requireText(name, "name"))
-                .measurementUnitId(SensorService.requireId(measurementUnitId, "measurementUnitId"))
+                .measurementUnitId(unitId)
                 .description(SensorService.emptyToNull(description))
                 .build();
         return variableRepository.save(variable);

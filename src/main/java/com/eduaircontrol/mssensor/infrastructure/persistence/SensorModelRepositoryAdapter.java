@@ -1,8 +1,8 @@
 package com.eduaircontrol.mssensor.infrastructure.persistence;
 
 import com.eduaircontrol.mssensor.domain.model.PageResult;
-import com.eduaircontrol.mssensor.domain.port.out.VariableRepository;
-import com.eduaircontrol.mssensor.domain.model.Variable;
+import com.eduaircontrol.mssensor.domain.model.SensorModel;
+import com.eduaircontrol.mssensor.domain.port.out.SensorModelRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -16,40 +16,39 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 @RequiredArgsConstructor
-public class VariableRepositoryAdapter implements VariableRepository {
+public class SensorModelRepositoryAdapter implements SensorModelRepository {
 
-    private final VariableJpaRepository jpaRepository;
+    private final SensorModelJpaRepository jpaRepository;
 
     @Override
-    public Variable save(Variable variable) {
-        return jpaRepository.save(variable);
+    public SensorModel save(SensorModel item) {
+        return jpaRepository.save(item);
     }
 
     @Override
-    public Optional<Variable> findById(UUID id) {
+    public Optional<SensorModel> findById(UUID id) {
         return jpaRepository.findById(id);
     }
 
     @Override
+    public boolean existsById(UUID id) {
+        return jpaRepository.existsById(id);
+    }
+
+    @Override
     public boolean existsByCode(String code) {
-        return jpaRepository.exists(Specification.<Variable>where(
+        return jpaRepository.exists(Specification.<SensorModel>where(
                 (root, query, cb) -> cb.equal(cb.lower(root.get("code")), code.toLowerCase())));
     }
 
     @Override
-    public boolean existsByMeasurementUnitId(UUID measurementUnitId) {
-        return jpaRepository.exists(Specification.<Variable>where(
-                (root, query, cb) -> cb.equal(root.get("measurementUnitId"), measurementUnitId)));
+    public void delete(SensorModel item) {
+        jpaRepository.delete(item);
     }
 
     @Override
-    public void delete(Variable variable) {
-        jpaRepository.delete(variable);
-    }
-
-    @Override
-    public PageResult<Variable> search(String query, int page, int limit) {
-        Specification<Variable> specification = (root, q, cb) -> {
+    public PageResult<SensorModel> search(String query, int page, int limit) {
+        Specification<SensorModel> specification = (root, q, cb) -> {
             List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
             if (query != null && !query.isBlank()) {
                 String pattern = "%" + query.trim().toLowerCase() + "%";
@@ -59,7 +58,7 @@ public class VariableRepositoryAdapter implements VariableRepository {
             }
             return cb.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
         };
-        Page<Variable> result = jpaRepository.findAll(
+        Page<SensorModel> result = jpaRepository.findAll(
                 specification,
                 PageRequest.of(page - 1, limit, Sort.by(Sort.Direction.ASC, "code")));
         return new PageResult<>(result.getContent(), result.getTotalElements(), page, limit);

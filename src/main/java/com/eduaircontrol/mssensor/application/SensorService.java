@@ -2,6 +2,8 @@ package com.eduaircontrol.mssensor.application;
 
 import com.eduaircontrol.mssensor.domain.model.PageResult;
 import com.eduaircontrol.mssensor.domain.port.out.SensorInstallationRepository;
+import com.eduaircontrol.mssensor.domain.port.out.SensorModelRepository;
+import com.eduaircontrol.mssensor.domain.port.out.SensorStatusRepository;
 import com.eduaircontrol.mssensor.domain.port.out.SensorRepository;
 import com.eduaircontrol.mssensor.domain.port.out.SensorVariableRepository;
 import com.eduaircontrol.mssensor.shared.exception.ConflictException;
@@ -22,6 +24,8 @@ public class SensorService {
     private final SensorRepository sensorRepository;
     private final SensorInstallationRepository sensorInstallationRepository;
     private final SensorVariableRepository sensorVariableRepository;
+    private final SensorModelRepository sensorModelRepository;
+    private final SensorStatusRepository sensorStatusRepository;
 
     @Transactional(readOnly = true)
     public PageResult<Sensor> list(String query, UUID sensorModelId, UUID sensorStatusId,
@@ -40,11 +44,15 @@ public class SensorService {
         if (sensorRepository.existsBySerialNumber(normalizedSerial)) {
             throw new ConflictException("Sensor serial number already exists: " + normalizedSerial);
         }
+        // Antes solo se comprobaba que no fueran null: un UUID inventado pasaba el
+        // alta y el sensor quedaba sin modelo ni estado reales.
+        requireExistingModel(sensorModelId);
+        requireExistingStatus(sensorStatusId);
         Sensor sensor = Sensor.builder()
                 .serialNumber(normalizedSerial)
                 .institutionId(TenantContext.institutionId())
-                .sensorModelId(requireId(sensorModelId, "sensorModelId"))
-                .sensorStatusId(requireId(sensorStatusId, "sensorStatusId"))
+                .sensorModelId(sensorModelId)
+                .sensorStatusId(sensorStatusId)
                 .build();
         return sensorRepository.save(sensor);
     }
@@ -61,9 +69,11 @@ public class SensorService {
             sensor.setSerialNumber(normalizedSerial);
         }
         if (sensorModelId != null) {
+            requireExistingModel(sensorModelId);
             sensor.setSensorModelId(sensorModelId);
         }
         if (sensorStatusId != null) {
+            requireExistingStatus(sensorStatusId);
             sensor.setSensorStatusId(sensorStatusId);
         }
         if (lastSeenAt != null) {
@@ -93,6 +103,20 @@ public class SensorService {
             throw new ValidationException(field + " is required");
         }
         return value;
+    }
+
+    private void requireExistingModel(UUID sensorModelId) {
+        UUID id = requireId(sensorModelId, "sensorModelId");
+        if (!sensorModelRepository.existsById(id)) {
+            throw new NotFoundException("Sensor model not found: " + id);
+        }
+    }
+
+    private void requireExistingStatus(UUID sensorStatusId) {
+        UUID id = requireId(sensorStatusId, "sensorStatusId");
+        if (!sensorStatusRepository.existsById(id)) {
+            throw new NotFoundException("Sensor status not found: " + id);
+        }
     }
 
     static String emptyToNull(String value) {

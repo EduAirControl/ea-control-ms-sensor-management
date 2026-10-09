@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.eduaircontrol.mssensor.domain.port.out.MeasurementUnitRepository;
 import com.eduaircontrol.mssensor.domain.port.out.SensorVariableRepository;
 import com.eduaircontrol.mssensor.domain.port.out.VariableRepository;
 import com.eduaircontrol.mssensor.shared.exception.ConflictException;
@@ -22,13 +23,17 @@ class VariableServiceTest {
 
     private VariableRepository variableRepository;
     private SensorVariableRepository sensorVariableRepository;
+    private MeasurementUnitRepository measurementUnitRepository;
     private VariableService variableService;
 
     @BeforeEach
     void setUp() {
         variableRepository = mock(VariableRepository.class);
         sensorVariableRepository = mock(SensorVariableRepository.class);
-        variableService = new VariableService(variableRepository, sensorVariableRepository);
+        measurementUnitRepository = mock(MeasurementUnitRepository.class);
+        when(measurementUnitRepository.existsById(any())).thenReturn(true);
+        variableService = new VariableService(variableRepository, sensorVariableRepository,
+                measurementUnitRepository);
     }
 
     @Test
@@ -73,5 +78,16 @@ class VariableServiceTest {
 
         assertThatThrownBy(() -> variableService.delete(id))
                 .isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    void createRejectsUnknownMeasurementUnit() {
+        when(variableRepository.existsByCode("CO2")).thenReturn(false);
+        when(measurementUnitRepository.existsById(any())).thenReturn(false);
+
+        assertThatThrownBy(() -> variableService.create("co2", "Carbon dioxide", UUID.randomUUID(), null))
+                .isInstanceOf(NotFoundException.class);
+
+        verify(variableRepository, never()).save(any());
     }
 }

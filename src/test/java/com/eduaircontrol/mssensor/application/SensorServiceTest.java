@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.eduaircontrol.mssensor.domain.port.out.SensorInstallationRepository;
+import com.eduaircontrol.mssensor.domain.port.out.SensorModelRepository;
+import com.eduaircontrol.mssensor.domain.port.out.SensorStatusRepository;
 import com.eduaircontrol.mssensor.domain.port.out.SensorRepository;
 import com.eduaircontrol.mssensor.domain.port.out.SensorVariableRepository;
 import com.eduaircontrol.mssensor.shared.exception.ConflictException;
@@ -24,6 +26,8 @@ class SensorServiceTest {
     private SensorRepository sensorRepository;
     private SensorInstallationRepository installationRepository;
     private SensorVariableRepository sensorVariableRepository;
+    private SensorModelRepository sensorModelRepository;
+    private SensorStatusRepository sensorStatusRepository;
     private SensorService sensorService;
 
     @BeforeEach
@@ -31,8 +35,12 @@ class SensorServiceTest {
         sensorRepository = mock(SensorRepository.class);
         installationRepository = mock(SensorInstallationRepository.class);
         sensorVariableRepository = mock(SensorVariableRepository.class);
+        sensorModelRepository = mock(SensorModelRepository.class);
+        sensorStatusRepository = mock(SensorStatusRepository.class);
+        when(sensorModelRepository.existsById(any())).thenReturn(true);
+        when(sensorStatusRepository.existsById(any())).thenReturn(true);
         sensorService = new SensorService(sensorRepository, installationRepository,
-                sensorVariableRepository);
+                sensorVariableRepository, sensorModelRepository, sensorStatusRepository);
     }
 
     private Sensor sensor(UUID id) {
@@ -107,5 +115,28 @@ class SensorServiceTest {
 
         assertThatThrownBy(() -> sensorService.update(id, "SN-002", null, null, null))
                 .isInstanceOf(ConflictException.class);
+    }
+
+    @Test
+    void createRejectsUnknownModel() {
+        when(sensorRepository.existsBySerialNumber("SN-001")).thenReturn(false);
+        when(sensorModelRepository.existsById(any())).thenReturn(false);
+
+        assertThatThrownBy(() -> sensorService.create("SN-001", UUID.randomUUID(), UUID.randomUUID()))
+                .isInstanceOf(NotFoundException.class);
+
+        verify(sensorRepository, never()).save(any());
+    }
+
+    @Test
+    void createRejectsUnknownStatus() {
+        when(sensorRepository.existsBySerialNumber("SN-001")).thenReturn(false);
+        when(sensorModelRepository.existsById(any())).thenReturn(true);
+        when(sensorStatusRepository.existsById(any())).thenReturn(false);
+
+        assertThatThrownBy(() -> sensorService.create("SN-001", UUID.randomUUID(), UUID.randomUUID()))
+                .isInstanceOf(NotFoundException.class);
+
+        verify(sensorRepository, never()).save(any());
     }
 }

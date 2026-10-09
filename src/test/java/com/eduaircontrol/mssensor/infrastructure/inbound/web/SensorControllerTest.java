@@ -4,6 +4,8 @@ import com.eduaircontrol.mssensor.domain.model.Sensor;
 import com.eduaircontrol.mssensor.domain.model.SensorInstallation;
 import com.eduaircontrol.mssensor.infrastructure.persistence.SensorInstallationJpaRepository;
 import com.eduaircontrol.mssensor.infrastructure.persistence.SensorJpaRepository;
+import com.eduaircontrol.mssensor.infrastructure.persistence.SensorModelJpaRepository;
+import com.eduaircontrol.mssensor.infrastructure.persistence.SensorStatusJpaRepository;
 import com.eduaircontrol.mssensor.shared.security.TestTokenMint;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -40,15 +42,34 @@ class SensorControllerTest {
     private SensorInstallationJpaRepository installationRepository;
 
     @Autowired
+    private SensorModelJpaRepository modelRepository;
+
+    @Autowired
+    private SensorStatusJpaRepository statusRepository;
+
+    @Autowired
     private TestTokenMint jwtService;
 
     private String adminToken;
     private String userToken;
+    private UUID modelId;
+    private UUID statusId;
 
     @BeforeEach
     void setUp() {
+        modelRepository.deleteAll();
+        statusRepository.deleteAll();
         installationRepository.deleteAll();
         sensorRepository.deleteAll();
+        // El alta exige modelo y estado reales: sin catalogo no hay sensor.
+        modelId = modelRepository.save(
+                com.eduaircontrol.mssensor.domain.model.SensorModel.builder()
+                        .code("ESP32_DHT11").name("ESP32 con DHT11").build())
+                .getId();
+        statusId = statusRepository.save(
+                com.eduaircontrol.mssensor.domain.model.SensorStatus.builder()
+                        .code("ACTIVE").name("Activo").build())
+                .getId();
         adminToken = jwtService.generateToken("admin@test.com", "ADMIN");
         userToken = jwtService.generateToken("user@test.com", "USER");
     }
@@ -56,15 +77,15 @@ class SensorControllerTest {
     private Sensor saveSensor(String serialNumber) {
         return sensorRepository.save(Sensor.builder()
                 .serialNumber(serialNumber)
-                .sensorModelId(UUID.randomUUID())
-                .sensorStatusId(UUID.randomUUID())
+                .sensorModelId(modelId)
+                .sensorStatusId(statusId)
                 .build());
     }
 
     private String createBody(String serialNumber) {
         return "{\"serialNumber\":\"" + serialNumber + "\","
-                + "\"sensorModelId\":\"" + UUID.randomUUID() + "\","
-                + "\"sensorStatusId\":\"" + UUID.randomUUID() + "\"}";
+                + "\"sensorModelId\":\"" + modelId + "\","
+                + "\"sensorStatusId\":\"" + statusId + "\"}";
     }
 
     @Test
