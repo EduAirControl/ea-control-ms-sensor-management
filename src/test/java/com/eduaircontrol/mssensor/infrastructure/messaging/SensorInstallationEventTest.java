@@ -64,6 +64,41 @@ class SensorInstallationEventTest {
                 UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
                 Instant.now(), Instant.now())
                 .routingKey()).isEqualTo("sensor.installation.closed");
+        assertThat(SensorInstallationEvent.deleted(
+                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
+                Instant.now(), Instant.now())
+                .routingKey()).isEqualTo("sensor.installation.deleted");
+    }
+
+    /**
+     * El borrado fisico no puede confundirse con un cierre: el consumidor purga la
+     * proyeccion y las mediciones solo cuando el eventType es este. Si se publicara
+     * como SensorRemoved, la instalacion quedaria marcada como retirada pero sus
+     * mediciones seguirian en la base.
+     */
+    @Test
+    void deletedEventIsDistinguishableFromAClosedOne() {
+        Instant removedAt = Instant.parse("2026-03-01T10:00:00Z");
+
+        SensorInstallationEvent event = SensorInstallationEvent.deleted(
+                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
+                Instant.parse("2026-01-01T10:00:00Z"), removedAt);
+
+        assertThat(event.eventType()).isEqualTo(SensorInstallationEvent.DELETED_TYPE);
+        assertThat(event.eventType()).isNotEqualTo(SensorInstallationEvent.REMOVED_TYPE);
+        assertThat(event.payload().removedAt()).isEqualTo(removedAt);
+    }
+
+    @Test
+    void deletedEventTypeSerializesForTheConsumer() throws Exception {
+        SensorInstallationEvent event = SensorInstallationEvent.deleted(
+                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
+                Instant.now(), Instant.now());
+
+        String json = MAPPER.writeValueAsString(event);
+
+        assertThat(json)
+                .contains("\"eventType\":\"" + SensorInstallationEvent.DELETED_TYPE + "\"");
     }
 
     @Test
