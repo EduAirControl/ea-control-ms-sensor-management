@@ -45,12 +45,15 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
+                        // SUPER_ADMIN cuenta como administrador: si no, el gestor global
+                        // podria dar el rol pero no usar la aplicacion. Sin esto un token
+                        // solo-SUPER_ADMIN recibia 403 en todo lo que escribe.
                         .requestMatchers(
-                                org.springframework.http.HttpMethod.POST, "/api/v1/**").hasRole("ADMIN")
+                                org.springframework.http.HttpMethod.POST, "/api/v1/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(
-                                org.springframework.http.HttpMethod.PATCH, "/api/v1/**").hasRole("ADMIN")
+                                org.springframework.http.HttpMethod.PATCH, "/api/v1/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(
-                                org.springframework.http.HttpMethod.DELETE, "/api/v1/**").hasRole("ADMIN")
+                                org.springframework.http.HttpMethod.DELETE, "/api/v1/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex

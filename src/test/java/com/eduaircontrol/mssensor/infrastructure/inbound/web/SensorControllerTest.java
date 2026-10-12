@@ -113,6 +113,47 @@ class SensorControllerTest {
                 .andExpect(jsonPath("$.error").value("FORBIDDEN"));
     }
 
+    /**
+     * SUPER_ADMIN cuenta como administrador. Sin esto el gestor global podia otorgar el
+     * rol pero no usar la aplicacion.
+     */
+    @Test
+    void createAsSuperAdminReturns201() throws Exception {
+        String superAdminToken = jwtService.generateToken("sa@test.com", "SUPER_ADMIN");
+
+        mockMvc.perform(post("/api/v1/sensors")
+                        .header("Authorization", "Bearer " + superAdminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody("SN-SA-1")))
+                .andExpect(status().isCreated());
+    }
+
+    /**
+     * Detras del gateway la identidad llega por headers. Antes solo se reenviaba el
+     * primer rol en X-User-Role, de modo que un usuario ADMIN+SUPER_ADMIN perdia el
+     * SUPER_ADMIN al cruzarlo.
+     */
+    @Test
+    void createViaGatewayHeadersCarriesEveryRole() throws Exception {
+        mockMvc.perform(post("/api/v1/sensors")
+                        .header("X-User-Id", UUID.randomUUID().toString())
+                        .header("X-User-Roles", "ADMIN,SUPER_ADMIN")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody("SN-GW-1")))
+                .andExpect(status().isCreated());
+    }
+
+    /** El header simple se conserva para despliegues con gateway antiguo. */
+    @Test
+    void createViaLegacySingleRoleHeaderStillWorks() throws Exception {
+        mockMvc.perform(post("/api/v1/sensors")
+                        .header("X-User-Id", UUID.randomUUID().toString())
+                        .header("X-User-Role", "ADMIN")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody("SN-GW-2")))
+                .andExpect(status().isCreated());
+    }
+
     @Test
     void createAsAdminReturns201WithLocation() throws Exception {
         mockMvc.perform(post("/api/v1/sensors")
