@@ -36,6 +36,16 @@ public class InstallationEventPublisherAdapter implements InstallationEventPubli
                 installation.getRemovedAt()));
     }
 
+    @Override
+    public void deleted(SensorInstallation installation) {
+        enqueue(SensorInstallationEvent.deleted(
+                installation.getId(),
+                installation.getSensorId(),
+                installation.getEducationalEnvironmentId(),
+                installation.getInstalledAt(),
+                installation.getRemovedAt()));
+    }
+
     private void enqueue(SensorInstallationEvent event) {
         outboxWriter.append(
                 event.eventType(),

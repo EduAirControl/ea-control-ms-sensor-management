@@ -18,4 +18,13 @@ public interface InstallationEventPublisher {
     void installed(SensorInstallation installation);
 
     void removed(SensorInstallation installation);
+
+    /**
+     * Borrado fisico de la instalacion.
+     *
+     * <p>El consumidor lo trata distinto de {@link #removed}: purga la proyeccion
+     * y las mediciones en vez de solo marcar {@code removedAt}, porque no quedara
+     * ninguna fila que las vincule.
+     */
+    void deleted(SensorInstallation installation);
 }

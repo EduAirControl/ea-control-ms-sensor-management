@@ -10,6 +10,14 @@ public interface SensorInstallationRepository {
 
     SensorInstallation save(SensorInstallation installation);
 
+    /**
+     * Borra la instalacion de forma fisica.
+     *
+     * <p>Es una purga, no el cierre logico: el llamante es responsable de publicar
+     * el evento que avise a los demas servicios antes de invocarla.
+     */
+    void deleteById(UUID id);
+
     Optional<SensorInstallation> findById(UUID id);
 
     PageResult<SensorInstallation> search(UUID sensorId, UUID educationalEnvironmentId,

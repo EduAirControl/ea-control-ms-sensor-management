@@ -179,6 +179,56 @@ class SensorInstallationServiceTest {
         verify(eventPublisher, never()).installed(any());
     }
 
+    @Test
+    void deletePublishesDeletedEventAndRemovesTheRow() {
+        UUID id = UUID.randomUUID();
+        SensorInstallation installation = SensorInstallation.builder()
+                .id(id)
+                .sensorId(UUID.randomUUID())
+                .educationalEnvironmentId(UUID.randomUUID())
+                .installedAt(Instant.now().minus(2, ChronoUnit.DAYS))
+                .build();
+        when(installationRepository.findById(id)).thenReturn(Optional.of(installation));
+
+        installationService.delete(id);
+
+        // El evento va ANTES del borrado y en la misma transaccion: sin el,
+        // ms-environment-monitoring conservaria la proyeccion apuntando a una
+        // instalacion inexistente y seguaria aceptando mediciones contra ella.
+        verify(eventPublisher).deleted(any(SensorInstallation.class));
+        verify(installationRepository).deleteById(id);
+    }
+
+    @Test
+    void deleteWorksOnAnInstallationThatIsStillActive() {
+        // Purgar un alta por error no debe obligar a cerrarla antes.
+        UUID id = UUID.randomUUID();
+        SensorInstallation active = SensorInstallation.builder()
+                .id(id)
+                .sensorId(UUID.randomUUID())
+                .educationalEnvironmentId(UUID.randomUUID())
+                .installedAt(Instant.now().minus(1, ChronoUnit.HOURS))
+                .build();
+        when(installationRepository.findById(id)).thenReturn(Optional.of(active));
+
+        installationService.delete(id);
+
+        assertThat(active.isActive()).isFalse();
+        verify(installationRepository).deleteById(id);
+    }
+
+    @Test
+    void deleteRejectsUnknownInstallation() {
+        UUID id = UUID.randomUUID();
+        when(installationRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> installationService.delete(id))
+                .isInstanceOf(NotFoundException.class);
+
+        verify(eventPublisher, never()).deleted(any());
+        verify(installationRepository, never()).deleteById(any());
+    }
+
     private Sensor sensor() {
         return Sensor.builder().id(UUID.randomUUID()).build();
     }

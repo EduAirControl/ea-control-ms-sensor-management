@@ -32,6 +32,11 @@ public class SensorInstallationRepositoryAdapter implements SensorInstallationRe
     }
 
     @Override
+    public void deleteById(UUID id) {
+        jpaRepository.deleteById(id);
+    }
+
+    @Override
     public PageResult<SensorInstallation> search(UUID sensorId, UUID educationalEnvironmentId,
             Boolean active, int page, int limit) {
         Specification<SensorInstallation> specification = (root, q, cb) -> {

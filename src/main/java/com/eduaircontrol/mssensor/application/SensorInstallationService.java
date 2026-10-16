@@ -71,6 +71,24 @@ public class SensorInstallationService {
         return saved;
     }
 
+    /**
+     * Borra la instalacion de forma <b>fisica</b> (purga), a diferencia de
+     * {@link #close(UUID)} que solo la marca con {@code removedAt}.
+     *
+     * <p>El evento se encola ANTES del borrado y dentro de la misma transaccion:
+     * sin el, ms-environment-monitoring conservaria la proyeccion apuntando a una
+     * instalacion inexistente y seguaria aceptando mediciones contra ella.
+     *
+     * <p>Se permite sobre una instalacion aun activa: purgar un alta por error
+     * debe poder hacerse sin cerrarla antes.
+     */
+    public void delete(UUID id) {
+        SensorInstallation installation = get(id);
+        installation.setRemovedAt(Instant.now());
+        eventPublisher.deleted(installation);
+        installationRepository.deleteById(id);
+    }
+
     private static Instant requireInstant(Instant value, String field) {
         if (value == null) {
             throw new ValidationException(field + " is required");
