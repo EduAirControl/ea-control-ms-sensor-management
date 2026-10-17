@@ -5,7 +5,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -17,19 +16,26 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Autenticación en el servicio.
+ * Autenticacion del servicio: unicamente JWT RS256 validado contra el JWKS de
+ * ms-security. Los headers internos del gateway (X-User-*) no se aceptan
+ * como identidad (R-001): el gateway reenvia siempre el Authorization
+ * resuelto (incluso en el flujo BFF por cookie), asi que las peticiones
+ * legitimas llegan con token y quien alcanze el puerto del servicio sin el
+ * no obtiene ninguna autoridad (SecurityConfig responde 401).
  *
- * <p>Prioriza los headers internos que añade el api-gateway (ADR-006/017):
- * {@code X-User-Id} y {@code X-User-Role}. Si no vienen (llamada directa), valida
- * el JWT RS256 contra el JWKS de ms-security.
- *
- * <p><b>Deuda conocida:</b> los headers se aceptan sin comprobar su origen, así que
- * quien alcance el puerto del servicio puede suplantarse. Se cierra con red
- * solo-gateway, mTLS o secreto compartido de headers.
+ * <p>El tenant (institutionId/campusId) sale de los claims del token y se
+ * publica como atributos de peticion para que {@code TenantFilter} lo
+ * propague a {@code TenantContext}.
  */
 @Component
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
+
+    /** Atributo de peticion con el institutionId resuelto del JWT. */
+    public static final String ATTR_INSTITUTION_ID = "jwtInstitutionId";
+
+    /** Atributo de peticion con el campusId resuelto del JWT. */
+    public static final String ATTR_CAMPUS_ID = "jwtCampusId";
 
     private static final Logger log = LoggerFactory.getLogger(JwtAuthFilter.class);
 
@@ -38,17 +44,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
-        String userId = request.getHeader("X-User-Id");
-        String role = request.getHeader("X-User-Role");
-        if (userId != null && !userId.isBlank()) {
-            List<SimpleGrantedAuthority> authorities = new ArrayList<>();
-            addAuthorities(authorities, request.getHeader("X-User-Roles"), role);
-            SecurityContextHolder.getContext().setAuthentication(
-                    new UsernamePasswordAuthenticationToken(userId, null, authorities));
-            filterChain.doFilter(request, response);
-            return;
-        }
-
         final String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
@@ -57,38 +52,24 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String token = authHeader.substring(7);
         try {
             JwtService.AuthenticatedUser user = jwtService.authenticate(token);
+            if (user.institutionId() != null) {
+                request.setAttribute(ATTR_INSTITUTION_ID, user.institutionId());
+            }
+            if (user.campusId() != null) {
+                request.setAttribute(ATTR_CAMPUS_ID, user.campusId());
+            }
             List<SimpleGrantedAuthority> authorities = user.roles().stream()
                     .map(r -> new SimpleGrantedAuthority("ROLE_" + r))
                     .toList();
             SecurityContextHolder.getContext().setAuthentication(
                     new UsernamePasswordAuthenticationToken(
                             user.email() != null ? user.email() : String.valueOf(user.userId()),
-                            null, authorities));
+                            token,
+                            authorities));
         } catch (Exception e) {
             log.debug("Invalid token: {}", e.getMessage());
         }
 
         filterChain.doFilter(request, response);
     }
-
-    /**
-     * El gateway manda todos los roles en {@code X-User-Roles} (coma-separados) y deja el
-     * primero en {@code X-User-Role} por compatibilidad. Con un usuario de varios roles el
-     * header simple bastaba para perder SUPER_ADMIN al cruzar el gateway.
-     */
-    private static void addAuthorities(List<SimpleGrantedAuthority> authorities,
-            String rolesHeader, String singleRole) {
-        if (rolesHeader != null && !rolesHeader.isBlank()) {
-            for (String r : rolesHeader.split(",")) {
-                if (!r.isBlank()) {
-                    authorities.add(new SimpleGrantedAuthority("ROLE_" + r.trim()));
-                }
-            }
-            return;
-        }
-        if (singleRole != null && !singleRole.isBlank()) {
-            authorities.add(new SimpleGrantedAuthority("ROLE_" + singleRole));
-        }
-    }
 }
-
