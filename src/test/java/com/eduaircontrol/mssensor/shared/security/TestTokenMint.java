@@ -60,6 +60,15 @@ public class TestTokenMint {
     }
 
     public static String mint(UUID userId, String email, List<String> roles) {
+        return mint(userId, email, roles, null, null);
+    }
+
+    /**
+     * Token con tenant: los claims institutionId/campusId son los que el
+     * JwtAuthFilter publica como atributos y TenantFilter propaga (R-001).
+     */
+    public static String mint(UUID userId, String email, List<String> roles,
+            UUID institutionId, UUID campusId) {
         Date now = new Date();
         return Jwts.builder()
                 .setSubject(userId == null ? email : userId.toString())
@@ -69,6 +78,8 @@ public class TestTokenMint {
                 .claim("userId", userId == null ? null : userId.toString())
                 .claim("roles", roles)
                 .claim("role", roles.isEmpty() ? null : roles.get(0))
+                .claim("institutionId", institutionId == null ? null : institutionId.toString())
+                .claim("campusId", campusId == null ? null : campusId.toString())
                 .setIssuedAt(now)
                 .setExpiration(new Date(now.getTime() + 3_600_000L))
                 .signWith(PRIVATE_KEY, SignatureAlgorithm.RS256)

@@ -129,29 +129,49 @@ class SensorControllerTest {
     }
 
     /**
-     * Detras del gateway la identidad llega por headers. Antes solo se reenviaba el
-     * primer rol en X-User-Role, de modo que un usuario ADMIN+SUPER_ADMIN perdia el
-     * SUPER_ADMIN al cruzarlo.
+     * Un token con varios roles conserva todos al cruzar el servicio: el rol
+     * efectivo sale del JWT, no de un header de un solo valor.
      */
     @Test
-    void createViaGatewayHeadersCarriesEveryRole() throws Exception {
+    void multiRoleTokenKeepsEveryRole() throws Exception {
+        String multiRoleToken = TestTokenMint.mint(
+                UUID.randomUUID(), "saadmin@test.com", java.util.List.of("ADMIN", "SUPER_ADMIN"));
+
         mockMvc.perform(post("/api/v1/sensors")
-                        .header("X-User-Id", UUID.randomUUID().toString())
-                        .header("X-User-Roles", "ADMIN,SUPER_ADMIN")
+                        .header("Authorization", "Bearer " + multiRoleToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createBody("SN-GW-1")))
                 .andExpect(status().isCreated());
     }
 
-    /** El header simple se conserva para despliegues con gateway antiguo. */
+    /**
+     * Regresion de R-001: los headers de identidad del gateway ya no autentican
+     * nada. Sin token la peticion es 401 aunque vayan headers de ADMIN.
+     */
     @Test
-    void createViaLegacySingleRoleHeaderStillWorks() throws Exception {
+    void forgedIdentityHeadersDoNotAuthenticate() throws Exception {
         mockMvc.perform(post("/api/v1/sensors")
                         .header("X-User-Id", UUID.randomUUID().toString())
                         .header("X-User-Role", "ADMIN")
+                        .header("X-User-Roles", "ADMIN,SUPER_ADMIN")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createBody("SN-GW-2")))
-                .andExpect(status().isCreated());
+                .andExpect(status().isUnauthorized());
+    }
+
+    /**
+     * Regresion de R-001: un token USER acompañado de headers forjados de ADMIN
+     * sigue sin poder escribir. El unico rol efectivo es el del token.
+     */
+    @Test
+    void forgedAdminHeadersDoNotElevateAUserToken() throws Exception {
+        mockMvc.perform(post("/api/v1/sensors")
+                        .header("Authorization", "Bearer " + userToken)
+                        .header("X-User-Id", UUID.randomUUID().toString())
+                        .header("X-User-Role", "ADMIN")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody("SN-GW-3")))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -273,26 +293,27 @@ class SensorControllerTest {
     }
 
     @Test
-    void listIsScopedByInstitutionHeader() throws Exception {
+    void listIsScopedByInstitutionClaim() throws Exception {
         UUID institutionA = UUID.randomUUID();
         UUID institutionB = UUID.randomUUID();
+        String tokenA = TestTokenMint.mint(
+                UUID.randomUUID(), "admin@test.com", java.util.List.of("ADMIN"), institutionA, null);
+        String tokenB = TestTokenMint.mint(
+                UUID.randomUUID(), "admin@test.com", java.util.List.of("ADMIN"), institutionB, null);
 
         mockMvc.perform(post("/api/v1/sensors")
-                        .header("Authorization", "Bearer " + adminToken)
-                        .header("X-Institution-Id", institutionA.toString())
+                        .header("Authorization", "Bearer " + tokenA)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createBody("SN-SCOPED-A")))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(get("/api/v1/sensors")
-                        .header("Authorization", "Bearer " + adminToken)
-                        .header("X-Institution-Id", institutionB.toString()))
+                        .header("Authorization", "Bearer " + tokenB))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.meta.total").value(0));
 
         mockMvc.perform(get("/api/v1/sensors")
-                        .header("Authorization", "Bearer " + adminToken)
-                        .header("X-Institution-Id", institutionA.toString()))
+                        .header("Authorization", "Bearer " + tokenA))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.meta.total").value(1));
     }
