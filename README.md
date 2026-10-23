@@ -24,6 +24,8 @@ IDs lógicos entre dominios y a catálogos excluidos (`sensorModelId`, `sensorSt
 
 ## Ejecutar
 
+Las variables de entorno estan en `.env.example` (copia a `.env` y ajusta los valores).
+
 ```bash
 # local (necesita PostgreSQL con la BD eduaircontrol_sensors)
 ./mvnw spring-boot:run
