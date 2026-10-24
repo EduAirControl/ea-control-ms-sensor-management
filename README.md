@@ -4,7 +4,7 @@ Servicio de registro y gestión de sensores (dominio **sensors** de EduAirContro
 
 - Spring Boot 4.0.5 / Java 17 — arquitectura hexagonal (ADR-009)
 - PostgreSQL 15 con esquema propio `sensors` (ADR-003), migraciones Liquibase (ADR-008)
-- Seguridad JWT interina HS256 (mismo `jwt.secret` que el monolito; ADR-006 pendiente)
+- Security: **RS256** access tokens validated against the ms-security JWKS (JWT-only, ADR-006/ADR-018)
 - Puerto **3004**, Swagger UI en `/swagger-ui.html`, health en `/health`
 
 ## Endpoints
