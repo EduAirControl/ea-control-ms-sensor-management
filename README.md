@@ -22,7 +22,9 @@ IDs lógicos entre dominios y a catálogos excluidos (`sensorModelId`, `sensorSt
 `measurementUnitId`, `educationalEnvironmentId`) se validan **solo como UUID** — ver
 `docs-ea-control/09-microservices/services/04-ms-sensor-management/decisions.md`.
 
-## Ejecutar
+## Running
+
+Environment variables live in `.env.example` (copy it to `.env` and adjust the values).
 
 ```bash
 # local (necesita PostgreSQL con la BD eduaircontrol_sensors)
