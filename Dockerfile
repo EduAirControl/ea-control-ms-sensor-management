@@ -18,13 +18,16 @@ FROM eclipse-temurin:17-jre
 
 WORKDIR /app
 
-RUN groupadd -r appgroup -g 1000 && useradd -r -g appgroup -u 1000 appuser \
-    && chown appuser:appgroup /app
+# Usuario no-root: reutiliza el UID/GID 1000 si ya existe en la imagen base
+# (p. ej. ubuntu en temurin reciente) para no romper el build.
+RUN (getent group 1000 >/dev/null 2>&1 || groupadd -g 1000 appgroup) \
+ && (id -u 1000 >/dev/null 2>&1 || useradd -u 1000 -g 1000 -r -s /usr/sbin/nologin appuser) \
+ && chown -R 1000:1000 /app
 
 COPY --from=builder /app/target/*.jar app.jar
-RUN chown appuser:appgroup app.jar
+RUN chown 1000:1000 app.jar
 
-USER appuser
+USER 1000
 
 EXPOSE 3004
 
