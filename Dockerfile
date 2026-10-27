@@ -16,23 +16,19 @@ RUN bash mvnw clean package -DskipTests
 
 FROM eclipse-temurin:17-jre
 
-# curl para el HEALTHCHECK y ejecutar como usuario no-root.
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && groupadd --gid 1000 app \
-    && useradd --uid 1000 --gid 1000 --system --shell /usr/sbin/nologin app
-
 WORKDIR /app
 
-COPY --from=builder /app/target/*.jar app.jar
-RUN chown -R app:app /app
+RUN groupadd -r appgroup -g 1000 && useradd -r -g appgroup -u 1000 appuser \
+    && chown appuser:appgroup /app
 
-USER app
+COPY --from=builder /app/target/*.jar app.jar
+RUN chown appuser:appgroup app.jar
+
+USER appuser
 
 EXPOSE 3004
 
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-    CMD curl -fsS http://localhost:3004/health || exit 1
+HEALTHCHECK --interval=10s --timeout=3s --start-period=40s --retries=3 \
+    CMD wget -qO- http://localhost:3004/health || exit 1
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
