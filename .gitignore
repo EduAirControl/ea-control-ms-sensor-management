@@ -21,3 +21,5 @@ opencode.json
 # target/test-keys/ (TestTokenMint) y ms-security carga las suyas por env/vault.
 *.pem
 **/keys/*.pem
+
+ms-sensor-management.env
